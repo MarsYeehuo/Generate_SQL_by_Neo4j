@@ -3,9 +3,11 @@
 from add_unit import create_new_unit
 from embed import update_all_nlp_embeddings
 from clear_links import clear_associations
-from llm_sql_generator import generate_sql_from_question
+from llm_sql_generator import generate_sql_from_question, build_prompt
 from hybrid_retriever import HybridRetriever
+from unit_association_trigger import expand_units_by_weight
 import re
+
 
 def main():
     print("KG SQL Agent 已启动（help 查看指令）")
@@ -51,8 +53,16 @@ def main():
         elif cmd == 'reset':
             clear_associations()
 
+        elif cmd == 'prompt':
+            q = input("请输入问题：\n> ")
+            top_units = retriever.find_units(q)
+            expanded_units, structure_info = expand_units_by_weight(top_units, threshold=5)
+            prompt = build_prompt(q, expanded_units)
+            print(prompt)
+
         else:
             print("未知指令，输入 help 查看所有选项。")
+
 
 if __name__ == '__main__':
     main()

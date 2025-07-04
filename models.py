@@ -1,8 +1,10 @@
-from neomodel import StructuredNode, StringProperty, BooleanProperty, RelationshipTo, RelationshipFrom, StructuredRel, IntegerProperty
+from neomodel import StructuredNode, StringProperty, BooleanProperty, RelationshipTo, RelationshipFrom, StructuredRel, \
+    IntegerProperty
 
 
 class AssociationRel(StructuredRel):
     weight = IntegerProperty(default=1)
+
 
 class Table(StructuredNode):
     name = StringProperty(required=True)
@@ -32,3 +34,4 @@ class Unit(StructuredNode):
     explained_by = RelationshipTo('Explanation', 'EXPLAINS')
     maps_to = RelationshipTo('Field', 'MAPS_TO')
     associated = RelationshipTo('Unit', 'ASSOCIATED_WITH', model=AssociationRel)
+

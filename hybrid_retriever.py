@@ -38,7 +38,7 @@ class HybridRetriever:
                 self.tokenized.append(list(jieba.cut(text)))
         self.bm25 = BM25Okapi(self.tokenized)
 
-    def find_units(self, query_text: str, top_k: int = 8, alpha: float = 0.6):
+    def find_units(self, query_text: str, top_k: int = 15, alpha: float = 0.6):
         if not self.bm25:
             self.load_from_graph()
 
@@ -63,9 +63,9 @@ class HybridRetriever:
         top_units = [x[0] for x in combined[:top_k]]
 
         # 联想拓展 + 权重更新
-        expanded = expand_units_by_weight(top_units, threshold=5)
-        update_association_weights(expanded)
-        return expanded
+        expanded_units, structure_info_list = expand_units_by_weight(top_units, threshold=5)
+        update_association_weights(expanded_units)
+        return expanded_units
 
 
 if __name__ == '__main__':

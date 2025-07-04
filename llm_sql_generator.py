@@ -9,33 +9,50 @@ from update_weight import update_association_weights
 from get_unit_information import get_unit_info_by_uid
 from hybrid_retriever import HybridRetriever
 
+
 def build_prompt(question: str, related_units: list) -> str:
     parts = [
         "你是一个SQL助手，请根据用户的问题生成SQL查询语句。",
         f"用户问题：{question}",
-        "相关信息："
-        "请注意，使用的sql数据库基于sQL Server，所有的表都在[LLM_test].[dbo]路径下，对于每个表名或者键名，请在外面加上[]。"
-        "此外，整个数据库中所有的时间日期类数据都使用varchar类型，数据库中没有年份相关的列，月份的格式为YYYY-MM（如2024-11），如果需要检索年份，请对月份使用检索。"
-        "下面是一个例子： SELECT [月份],[单据类型],[采购总金额] FROM [LLM_test].[dbo].[各单据类型每月采购总额]"
+        "相关信息：",
+        "请注意：使用的SQL数据库是SQL Server，所有表都在 [LLM_test].[dbo] 路径下。请对表名或字段名加上中括号 []。",
+        "数据库中时间字段类型均为 varchar，格式如 YYYY-MM，例如 2024-11，若需要筛选年份，请操作月份字段。",
+        "请避免臆造字段，若字段不在下方信息中，请不要使用。",
+        "提供给你的所有Field中都额外添加了一个表名，用来区分"
+        "以下是与问题相关的字段、解释与所属表结构："
     ]
+
+    seen_tables = set()
 
     for uid in related_units:
         info = get_unit_info_by_uid(uid)
         if not info:
             continue
 
-        # 支持一个unit关联多个field（不常见，但结构允许）
         for record in info:
             try:
                 nlp = record.get("nlp") or "（无关键词）"
                 exp = record.get("explanation") or "（无解释）"
-                field = record.get("field_name") or "未知字段"
+                field = record.get("field_name").split(".")[1] or "未知字段"
                 table = record.get("table_name") or "未知表"
-                parts.append(f"- 关键词：{nlp}\n  解释：{exp}\n  字段：{table}.{field}")
-            except:
+
+                parts.append(f"- 关键词：{nlp}\n  解释：{exp}\n  字段：[{table}].[{field}]")
+
+                # 附加该字段所在表的全部字段结构（只展示一次）
+                if table not in seen_tables:
+                    seen_tables.add(table)
+                    from models import Table
+                    table_node = Table.nodes.get(name=table)
+                    table_fields = table_node.fields if hasattr(table_node, 'fields') else []
+                    if table_fields:
+                        parts.append(f"  [{table}] 表包含字段：")
+                        for f in table_fields:
+                            parts.append(f"    - {f.name} ({f.type}, 可空: {f.nullable})")
+            except Exception as e:
+                print(f"[跳过错误记录] {e}")
                 continue
 
-    parts.append("请只返回SQL代码，不要做任何解释，不要换行，也不要输出额外文本。")
+    parts.append("请只返回SQL代码，不要做任何解释，也不要输出其他额外信息。")
     return "\n".join(parts)
 
 

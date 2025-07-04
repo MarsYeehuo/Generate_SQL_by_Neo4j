@@ -11,8 +11,10 @@ to run the api tool and open the port.'''
 app = FastAPI()
 retriever = HybridRetriever()
 
+
 class SQLRequest(BaseModel):
     question: str
+
 
 @app.post("/generate_sql")
 async def generate_sql(req: SQLRequest):
